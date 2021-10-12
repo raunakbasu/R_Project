@@ -1,0 +1,438 @@
+---
+title: "Group 9 Project 2"
+author: "Raunak Basu and Pulari Baskar"
+date: "07/10/2021"
+output: html_document
+---
+
+# Mulling Over Marriage
+
+Names: Pulari Baskar and Raunak Basu (Group Leader)
+
+## Introduction & Research Question
+
+Over the duration of this course, we have been compelled to acknowledge that a so-called "literary trend" may not in fact be as all-encompassing as it may claim to be. We also realize that this isn't necessarily the fault of a scholar, as it would take enormous labour to analyze a large body of texts from a certain period in order to find a trend. However, this obstacle is quickly overcome via technology, as we can use computers to consume large volumes of information, generate trends and visualise them in a way to draw some conclusions.
+
+In this project, we attempt to unpack the theme of marriage in the written literary works of American female authors in the 19th century. We chose this topic because we wanted to see the extent of validity of the notion that women tend to write about romance and domestic spaces. Additionally, we wanted to see how they wrote about marriage- whether it was a positive approach that praised the joys of married life and familial engagement, or whether the authors took up a more critical lens to analyze marriage.
+
+## Research Hypothesis
+
+The theme of marriage played an important role in the works of American female authors in the 19th century.
+
+## Corpus Description
+
+We created one chronological master corpus containing the works of all four of the authors, in order to be able to detect general trends across their works spanning over the century. The four authors we picked were Fanny Fern (1811-1872), Harriet Beecher Stowe (1811-1896), Louisa May Alcott (1832-1888), and Kate Chopin (1850-1904). We procured all our texts from the Project Gutenberg database. We chose these authors because they collectively have lived across the span of the entire century. Though we realize that this does not mean that our corpus now has written works spanning the entire century, this would still cover a significant portion of the century. Additionally, given the non-uniformity of each author's timeline, they are likely to have been subject to different social influences respectively.
+
+## Preparing for Analysis
+
+First, we setup R.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Import Libraries
+
+Then we import some libraries for R to carry out the necessary functions.
+
+```{r import_libs}
+library(gutenbergr)
+library(dplyr)
+library(tidytext)
+library(stringr)
+library(tidyverse)
+library(tm)
+library(ggplot2)
+library(tidyr)
+library(plotly)
+library(ggthemes)
+library(scales)
+```
+
+### Reading Files from Corpus
+
+We had to create a data frame which contains the work of each individual author's corpus and then bind them into the master corpus on which we can carry out tasks and visualizations.The base code we used for this process was created by our Professor, Joost Burgers: "var_name <- data_frame(text = read_file("file.txt"), author = "author_name", title= "title")". 
+
+First we compile all the works by Fanny Fern. There are 8 texts, published between 1853 and 1872. 
+
+```{r reading_ff}
+b1 <- data_frame(text = read_file("FF_1853_Fern Leaves from Fannys Portfolio.txt"), author = "Fanny Fern", title= "Fern Leaves", pub_date = "1853")
+b2 <- data_frame(text = read_file("FF_1854_Little Ferns.txt"), author = "Fanny Fern", title= "Little Ferns", pub_date = "1854")
+b3 <- data_frame(text = read_file("FF_1854_Ruth Hall.txt"), author = "Fanny Fern", title= "Ruth Hall", pub_date = "1854")
+b4 <- data_frame(text = read_file("FF_1856_Rose Clark.txt"), author = "Fanny Fern", title= "Rose Clark", pub_date = "1856")
+b5 <- data_frame(text = read_file("FF_1857_fresh leaves.txt"), author = "Fanny Fern", title= "Fresh Leaves", pub_date = "1857")
+b6 <- data_frame(text = read_file("FF_1868_Folly As It Flies.txt"), author = "Fanny Fern", title= "Folly as it Flies", pub_date = "1868")
+b7 <- data_frame(text = read_file("FF_1870_Ginger Snaps.txt"), author = "Fanny Fern", title= "Ginger Snap", pub_date = "1870")
+b8 <- data_frame(text = read_file("FF_1872_caper.txt"), author = "Fanny Fern", title= "Caper", pub_date = "1872")
+
+bff <- rbind(b1, b2, b3, b4, b5, b6, b7, b8)
+```
+
+Now we compile the works by Harriet Beecher Stowe. There are 8 texts, published between 1852 and 1896.
+
+```{r reading_HBS}
+b9 <- data_frame(text = read_file("HBS_1852_Uncle Tom's Cabin.txt"), author = "Harriet Beecher Stowe", title= "Uncle Tom's Cabin", pub_date = "1852")
+b10 <- data_frame(text = read_file("HBS_1856_Dred A Tale of the Great Dismal Swamp.txt"), author = "Harriet Beecher Stowe", title= "Dred: A Tale of the Great Dismal Swamp", pub_date = "1856")
+b11 <- data_frame(text = read_file("HBS_1859_The Minister's Wooing.txt"), author = "Harriet Beecher Stowe", title= "The Minister's Wooing", pub_date = "1859")
+b12 <- data_frame(text = read_file("HBS_1861_The Pearl of Orr's Island.txt"), author = "Harriet Beecher Stowe", title= "The Pearl of Orr's Island", pub_date = "1861")
+b13 <- data_frame(text = read_file("HBS_1871_Oldtown Fireside Stories.txt"), author = "Harriet Beecher Stowe", title= "Oldtown Fireside Stories", pub_date = "1871")
+b14 <- data_frame(text = read_file("HBS_1871_Pink and White Tyranny.txt"), author = "Harriet Beecher Stowe", title= "Pink and White Tyranny", pub_date = "1871")
+b15 <- data_frame(text = read_file("HBS_1873_Palmetto Leaves.txt"), author = "Harriet Beecher Stowe", title= "Palmetto Leaves", pub_date = "1873")
+b16 <- data_frame(text = read_file("HBS_1896_Household Papers and Stories.txt"), author = "Harriet Beecher Stowe", title= "Household Papers and Stories", pub_date = "1896")
+
+bhbs <- rbind(b9, b10, b11, b12, b13, b14, b15, b16)
+
+```
+
+Next, we compile the works of Kate Chopin. There are 4 texts, published between 1890 and 1899.
+
+```{r reading_KC}
+b17 <- data_frame(text = read_file("KC_1890_At Fault.txt"), author = "Kate Chopin", title= "At Fault", pub_date = "1890")
+b18 <- data_frame(text = read_file("KC_1894_Bayou Folk.txt"), author = "Kate Chopin", title= "Bayou Folk", pub_date = "1894")
+b19 <- data_frame(text = read_file("KC_1897_A Night in Acadie.txt"), author = "Kate Chopin", title= "A Night in Acadie", pub_date = "1897")
+b20 <- data_frame(text = read_file("KC_1899_The Awakening and Selected Short Stories.txt"), author = "Kate Chopin", title= "The Awakening and Selected Short Stories", pub_date = "1899")
+
+bkc <- rbind(b17, b18, b19, b20)
+
+```
+
+Finally, we compile Louisa May Alcott's works There are 10 texts, published between 1860 and 1887.
+
+```{r reading_LMA}
+b21 <- data_frame(text = read_file("LMA_1860_A Modern Cinderella.txt"), author = "Louisa May Alcott", title= "A Modern Cinderella", pub_date = "1860")
+b22 <- data_frame(text = read_file("LMA_1862_pauline's passion and punishment.txt"), author = "Louisa May Alcott", title= "Pauline's Passion and Punishment", pub_date = "1862")
+b23 <- data_frame(text = read_file("LMA_1864_Moods.txt"), author = "Louisa May Alcott", title= "Moods", pub_date = "1864")
+b24 <- data_frame(text = read_file("LMA_1868_Little Women.txt"), author = "Louisa May Alcott", title= "Little Women", pub_date = "1861")
+b25 <- data_frame(text = read_file("LMA_1871_Little Men.txt"), author = "Louisa May Alcott", title= "Little Men", pub_date = "1871")
+b26 <- data_frame(text = read_file("LMA_1875_Eight cousins.txt"), author = "Louisa May Alcott", title= "Eight Cousins", pub_date = "1875")
+b27 <- data_frame(text = read_file("LMA_1880_Jack and Jill.txt"), author = "Louisa May Alcott", title= "Jack and Jill", pub_date = "1880")
+b28 <- data_frame(text = read_file("LMA_1886_Jo's Boys.txt"), author = "Louisa May Alcott", title= "Jo's Boys", pub_date = "1886")
+b29 <- data_frame(text = read_file("LMA_1887_A Garland for Girls.txt"), author = "Louisa May Alcott", title= "A Garland for Girls", pub_date = "1887")
+b30 <- data_frame(text = read_file("LMA_1887_mountain laurel.txt"), author = "Louisa May Alcott", title= "A Mountain Laurel", pub_date = "1887")
+
+blma <- rbind(b21, b22, b23, b24, b25, b26, b27, b28, b29, b30)
+
+```
+
+Finally, we combined all of it into our master corpus, the base data frame for all our research.
+
+```{r corpus}
+books <- rbind(bff, bhbs, bkc, blma)
+```
+
+The last step before getting to the analyses: restructuring our data set in a "one token per row" format.
+
+```{r tidying}
+
+tidy_books <- books %>%
+  unnest_tokens(word, text)
+
+```
+
+## Analyzing the Data Frame
+
+Finally, we have our master corpus data frame! We can get to analyzing the word frequencies now. In order to arrive at a graph for the word frequencies, we based our code off the work of Alex Polymath (for reference: [https://www.codementor.io/\@alexander-k/r-word-frequency-in-dataframe-165jgfxxqe\#step-1-create-stopwords-dataframe](https://www.codementor.io/@alexander-k/r-word-frequency-in-dataframe-165jgfxxqe#step-1-create-stopwords-dataframe){.uri}).
+
+First and foremost, getting rid of those pesky stop words!
+
+```{r antijoin_stopwords}
+data(stop_words)
+
+tidy_books <- tidy_books %>%
+  anti_join(stop_words)
+
+
+```
+
+### Word Frequencies
+
+Now, we use R to identify word frequencies from the "tidy_books" data frame.
+
+```{r frequency}
+frequency_dataframe = tidy_books %>% count(word) %>% arrange(desc(n))
+```
+
+We also decided to look at the word frequencies of only the top 25 words- we didn't want to be overwhelmed by data!
+
+```{r test_frequency}
+short_dataframe = head(frequency_dataframe, 25)
+```
+
+```{r plot_frequency}
+
+ggplot(short_dataframe, aes(x = word, y = n, fill = word)) + geom_col() 
+```
+
+The most frequently occurring word appears to be "Time", followed by "Day" and "Eyes". We must also ignore "Jo", as it is the name of one of the protagonists in Louisa May Alcott's "Little Women". It becomes significant to note that the words "Woman", "Miss" and "Mother" appear frequently across the corpus, as it indicates that female figures consistently take up space in the narratives for all four authors. Additionally, the frequent occurrence of both "Child" and "Children" (alongside mother) hints that even children play a significant role in the novels. Whether this is in relation to the female characters or not, we will be able to unpack with a more elaborate analysis. The high frequency of "House" and "Home" leads us to believe that the writing of the authors had a tendency to feature domestic spaces.
+
+### Correlations
+
+We can draw data about the correlations between two words throughout the corpus. We used the code provided by Julia Sielge and David Robinson in their work, "Tidy Text Mining with R", and adapted it to suit our needs. To do so, there are a few steps, separated into different code chunks:
+
+```{r create_bigram}
+
+books_bigrams <- books %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+
+```
+
+```{r initialise_bigram}
+books_bigrams %>%
+  count(bigram, sort = TRUE)
+```
+
+However, these correlations do not help us as these were derived without filtering out the stop words in the data frame. Since stop words do tend to come in pairs more frequently than any informative correlated words would, it becomes necessary to filter them.
+
+```{r separate_and_filter}
+
+bigrams_separated <- books_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+bigrams_filtered <- bigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+```
+
+Now that we've gotten rid of the stop words, we can get back to finding correlations!
+
+```{r check_correlation}
+bigram_counts <- bigrams_filtered %>% 
+  count(word1, word2, sort = TRUE)
+
+bigram_counts
+```
+
+Most of the correlations in the first 5 sets of rows are character names. Besides this, we aren't getting any relevant information for our hypothesis. In order to procure that, we must refine our search further.
+
+```{r filter_bigrams}
+bigrams_filtered %>%
+  filter(word2 == "marriage") %>%
+  count(word2, word1, sort = TRUE)
+
+```
+
+The first correlation for marriage that we find is "fatal", which indicates that there were non-romantic themes of marriage in the works of the authors. This is also further confirmed by the correlations "loveless" and "unequal" (although these have a lesser correlation than the former). We also see correlations between character names and marriage, indicating that marriage as an event likely played a significant role in the plot of the novels.
+
+```{r filtered bigrams 2}
+bigrams_filtered %>%
+  filter(word2 == "married") %>%
+  count(word2, word1, sort = TRUE)
+
+```
+
+We don't see any negative (sentiment-wise) words correlated to married, though there are a wide range of words correlated to it, indicating that it was used in various contexts in the novels.
+
+```{r filtered bigrams 3}
+bigrams_filtered %>%
+  filter(word2 == "wedding") %>%
+  count(word2, word1, sort = TRUE)
+```
+
+Again, we do not realize anything ground breaking from these correlations. Weddings are spoken about predominantly in the context of female characters in the novels.
+
+## Data Visualization 1:
+
+Earlier, we had just arrived at the frequency of general words across the corpus, but it did not help us with arriving at an answer for our research hypothesis. Hence, for our first data visualization, we decided to look at the frequency of "Marriage" and words related to it: "Marry", "Married", "Bride", "Bridegroom", "Married". Additionally, in order to see if we could find any chronological trends in relation to this data, we also charted the corpus over time.
+
+First, we initialized a data frame containing the frequency of such words in each text.
+
+```{r frequency_marriage}
+
+marriage_words <- c("marriage", "marry", "wedding", "bride", "bridegroom", "married")
+marriage_df <- data_frame(word = marriage_words, marriage=TRUE)
+
+tidying <- tidy_books %>%
+              left_join(marriage_df) 
+#tidy_books with marriage added
+tidy_marriage <- tidying %>%
+              drop_na(marriage)
+#drop instances of words in the marriage bucket not appearing
+marriage_table <- tidy_marriage %>% 
+                     group_by(title, pub_date)%>%
+                     count(marriage)
+#only contains title and pub_date and frequency of marriage
+
+```
+
+Then we visualized it.
+
+```{r column}
+x <- ggplot(marriage_table, aes(x=pub_date, y=n, fill=title)) +  geom_col()
+fig1 <- ggplotly(x)
+fig1
+```
+
+From this visualization, we notice a rather steep drop in the frequency of marriage related terms post 1870. There also doesn't appear to be a heightened frequency of the word cluster in relation to particular authors, suggesting that it was a general theme that was touched upon by all four of them. But the highest word count that we received for the cluster was 133, in Harriet Beecher Stowe's "The Minister's Wooing". Considering that an average fiction novel has around 70,000 to 120,000 words, we realize that the theme of marriage does not manifest frequently (or at least obviously) in the corpus.
+
+```{r line}
+p <- ggplot(marriage_table, aes(x=pub_date, y=n, group=1)) +  geom_line() +geom_point()
+
+fig <- ggplotly(p)
+
+fig
+```
+
+In this second graph, it is far simpler to read the frequencies of the marriage word cluster across the corpus. Apart from the higher frequency of the cluster in the first half of the cluster (which also does not present a predictable pattern), we see that the distribution of the cluster is quite random.
+
+```{r update_frequency}
+#creating a dataframe where we can see the relative frequency also
+
+update_frequency <- tidying %>%
+  group_by(title) %>%
+  add_count(name = "length") %>%
+  mutate(marriage_count = sum(marriage, na.rm = TRUE)) %>%
+  mutate(relative_frequency = marriage_count / length) %>%
+  select(pub_date, author, title, relative_frequency) %>% 
+  distinct()
+
+
+```
+
+We created a histogram to visualise plot the relative frequency of mentions of "marriage" in the texts of the four authors. We can see that Louisa May Alcott and Harriet Beecher Stowe's works tend to have more mentions of marriage than the works of Kate Chopin and Fanny Fern.
+
+```{r wrapped_histogram}
+p4 <- ggplot(update_frequency, aes(relative_frequency, fill = pub_date))+ 
+  geom_histogram(color = "black",
+    alpha = .5,
+    position = "identity")+
+  labs(title = "Histogram of Mentions of Marriage by Author and Date of Publication",
+       x = "Relative Frequency of Marriage Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(~author)
+fig4 <- ggplotly(p4)
+fig4
+```
+
+
+## Data Visualization 2
+
+The second visualization we picked was a series of histograms to help us visualize the sentiments surrounding marriage in the corpus. In order to do this, we first need to break each text up into sentences, and look for sentences where words from our marriage bucket appear. These sentences are then scanned for any sentiments that appear in them, and given a negative or positive value. A high positive sentiment value indicates "good" sentiments (some might even say that they're positive sentiments), and vice versa.
+
+
+```{r initialise_sentence}
+#we use books here not tidy_books because we need the whole text
+book_sentence <- books %>%
+  group_by(pub_date, author, title, text) %>%
+  summarise (text = paste(text, collapse = "")) %>%
+  unnest_regex(sentences, text, pattern = "[.?!]", to_lower = FALSE)  
+```
+
+```{r sentence_final}
+book_sentence_nr <- book_sentence %>%
+  ungroup() %>%
+  mutate(sentence_number = row_number()) %>%
+  group_by(pub_date, author, title, sentence_number) %>%
+  unnest_tokens(word, sentences) %>%
+  anti_join(stop_words)
+```
+
+```{r adding_marriage}
+book_marriage <-  book_sentence_nr %>%
+  left_join(marriage_df)
+```
+
+```{r author_concept_sentiment}
+marriage_sentiment <- book_marriage %>%
+  inner_join(get_sentiments("bing"))
+```
+
+```{r author_sentiment_total}
+marriage_sentiment_total <- marriage_sentiment %>%
+  count(sentence_number, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0)  %>%
+  mutate(sentiment = positive - negative) %>%
+  left_join(book_marriage) %>%
+  filter(marriage == TRUE)
+```
+
+Thus, we get a table in the next chunk of code wherein we have the titles of the texts and the attached metadata (author, publication date) and also the corresponding sentiment score. This "marriage_sentiment_table" will be used to produce further data visualisations. 
+```{r author_sentiment_table}
+marriage_sentiment_table <- marriage_sentiment_total %>%
+  pivot_longer(marriage,
+               names_to = "concept",
+               values_to = "total_sentiment")  %>%
+  drop_na() %>%
+  group_by(pub_date, author, title, concept) %>%
+  summarise (total = sum(sentiment)) %>%
+  ungroup()
+```
+
+First, we plotted sentiments by author, to see if there was any specific trend that correlated an author with a specific sentiment about marriage.
+
+```{r plot_author_sentiment}
+pp <- ggplot(marriage_sentiment_table, aes(author, y = total, fill = pub_date)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  labs(title = "Positive and Negative Sentiment of Marriage by Author",
+       x = "Author",
+       y = "Overall Sentiment",
+       fill = "Publication Date") +
+  coord_flip() 
+
+fig5 <- ggplotly(pp)
+fig5
+```
+
+We see that Louisa May Alcott is the only author in the corpus who does not seem to associate negative sentiments with marriage. Harriet Beecher Stowe appears to have the widest ranging sentiments about marriage. Both Kate Chopin's and Fanny Fern's works on the other hand carry a higher concentration of negative sentiments regarding marriage than positive.
+
+Next, we plotted the sentiments by year to try and see if there was a pattern in the way sentiments surrounding marriage evolved over the second half of the century.
+
+```{r plot_year_sentiment}
+p6 <- ggplot(marriage_sentiment_table, aes(pub_date, y = total, fill = title)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  labs(title = "Positive and Negative Sentiment of Marriage by Publication Year",
+       x = "Publication Date",
+       y = "Overall Sentiment",
+       fill = "Text") +
+  coord_flip() 
+
+fig6 <- ggplotly(p6)
+fig6
+```
+
+There is definitely a higher range of positive sentiments surrounding marriage in the corpus, though there doesn't seem to be a definite pattern to predict. We also see from the above graph that negative sentiments towards marriage was not concentrated towards the end of the corpus time line but occur at the beginning and middle as well. This graph also helps us visualize that the authors sometimes maintained fairly neutral positions towards marriage in their works (e.g. "A Modern Cinderella, 1860).
+
+In the final iteration of our Visualisation for Sentiment analysis, we separate our previous figure into four on the basis of the authors to give an idea as to how differing their sentiments towards marriage are in their works. We arrive at a comprehensive diagram that represents the sentiment score for each text, which authors tend to feel more strongly or indifferently towards marriage, and also how this sentiment changes over time.
+
+```{r final_chart}
+
+p7 <- ggplot(marriage_sentiment_table, aes(pub_date,y =total, fill = title)) +
+  geom_col(color="black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ author) +
+  labs(title = "Positive and Negative Sentiment of Marriage",
+       x = "Publication Date",
+       y = "Overall Sentiment",
+       fill = "Text") +
+  coord_flip() +
+  theme_hc()
+fig7 <- ggplotly(p7)
+fig7
+```
+
+NOTE: The base codes for both the visualizations were drawn from Sielge & Robinson and/or Burgers.
+
+## Conclusion
+
+Through our text-mining, we realized that while female authors from America in the 19th century did write about marriage, it did not feature in their works as prominently as we had thought. In their works, we also see a mix of both positive and negative sentiments surrounding marriage (though the former outweighed the latter), but again, not in a manner that can be classified under any pattern. The next steps to take forward this hypothesis could perhaps be a comparison between female and male authors on the theme of marriage, accompanied by a comparative sentiment analysis. It would also help to include other authors who had written and published works in the first half of the 19th century, so as to get a more accurate picture of the trends that evolved over a 100 years.
+
+## Reflections
+
+Despite the tumultuous start to our project with the loss of our team member, the two of us were quite satisfied with the work dynamic we developed. Perhaps the time crunch helped us better focus on our research question rather than get sidetracked by the other information the data was throwing at us. Though one of us had worked on the same corpus before, we realized that there were stark differences in the results we received at even the most basic of data analyses (word frequency and word correlations).
+
+The R Markdown interface made it simpler to experiment, as it was far simpler to share our individual progress and re-writing the code to get new results did not take much time. We also felt more in control of the data we were trying to collect, as we could get answers by translating our questions into code. Whereas with Voyant, even with a little toggling, we felt restricted by the extent of work we could do. The disadvantages of using R in lieu of Voyant or other programming languages such as Python is the steep learning curve until you are able to actually effectively utilize code to do things you want. Fairly simple tasks such as reading files took some time to figure out, and even more menial ones such as how to make the data visualizations look more visually appealing and accessible took literal hours.
+
+Overall, though, definitely a challenge, we both feel more comfortable using the R programming language and its libraries, to extract information from data and represent it in a meaningful way.
+
+## References
+
+1.  Silge, Julia, and David Robinson. *Text mining with R: A tidy approach*. " O'Reilly Media, Inc.", 2017. <https://github.com/dgrtwo/tidy-text-mining>
+2.  Burgers, Joost. "R Lessons". GitHub, September 20th, 2021. <https://github.com/joostburgers/R_lessons.git>
+3.  Polymath, Alex. "R: Word Frequency in Data Frame". Code Mentor, May 20th, 2020.
